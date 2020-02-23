@@ -23,6 +23,7 @@ jobs:
           - '--HEAD --with-xwidgets'
           - '--HEAD --with-emacs-27-branch'
           - '--HEAD --with-emacs-27-branch --with-no-titlebar'
+          - '--HEAD --with-native-comp-branch --without-imagemagick@7 --with-xwidgets'
 
     env:
       HOMEBREW_GITHUB_REF: ${{ github.head_ref || github.ref }}
