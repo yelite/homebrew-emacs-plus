@@ -1,3 +1,4 @@
+# coding: utf-8
 require_relative "../Library/PatchUrlResolver"
 
 class EmacsPlusAT27 < Formula
@@ -205,6 +206,11 @@ class EmacsPlusAT27 < Formula
   patch do
     url (PatchUrlResolver.url "emacs-27/system-appearance")
     sha256 "a267a67956ded98b6337fb92e6f3830555b2fe70c3e6f7aa6c1697a7398428dc"
+  end
+
+  patch do
+    url (PatchUrlResolver.url "emacs-27/center-line-spacing")
+    sha256 "0de197a66ef6c81bbf106dd2813a051e9a8f273ab8d7f371c4f8162714804d36"
   end
 
   def install

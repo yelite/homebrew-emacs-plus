@@ -1,6 +1,6 @@
 class PatchUrlResolver
   def self.repo
-    (ENV["HOMEBREW_GITHUB_ACTOR"] or "d12frosted") + "/" + "homebrew-emacs-plus"
+    (ENV["HOMEBREW_GITHUB_ACTOR"] or "yelite") + "/" + "homebrew-emacs-plus"
   end
 
   def self.branch

@@ -1,0 +1,106 @@
+diff --git a/doc/lispref/display.texi b/doc/lispref/display.texi
+index 0cb3d40996..015ee4619e 100644
+--- a/doc/lispref/display.texi
++++ b/doc/lispref/display.texi
+@@ -2155,6 +2155,11 @@ Line Height
+ specifies the spacing relative to the default frame line height.  This
+ overrides line spacings specified for the frame.
+ 
++  The @code{line-spacing} parameter creates the space by putting some
++margin only below the line. If you wish to center the line vertically
++instead, you can set the variable @code{line-spacing-vertical-center}
++as non-nil.
++
+ @kindex line-spacing @r{(text property)}
+   Finally, a newline can have a @code{line-spacing} text or overlay
+ property that can enlarge the default frame line spacing and the
+diff --git a/src/buffer.c b/src/buffer.c
+index 6a8da12471..ba26abd360 100644
+--- a/src/buffer.c
++++ b/src/buffer.c
+@@ -217,6 +217,11 @@ bset_extra_line_spacing (struct buffer *b, Lisp_Object val)
+   b->extra_line_spacing_ = val;
+ }
+ static void
++bset_line_spacing_vertical_center (struct buffer *b, Lisp_Object val)
++{
++  b->line_spacing_vertical_center_ = val;
++}
++static void
+ bset_file_format (struct buffer *b, Lisp_Object val)
+ {
+   b->file_format_ = val;
+@@ -945,6 +950,7 @@ reset_buffer (register struct buffer *b)
+     (b, BVAR (&buffer_defaults, enable_multibyte_characters));
+   bset_cursor_type (b, BVAR (&buffer_defaults, cursor_type));
+   bset_extra_line_spacing (b, BVAR (&buffer_defaults, extra_line_spacing));
++  bset_line_spacing_vertical_center (b, BVAR (&buffer_defaults, line_spacing_vertical_center));
+ 
+   b->display_error_modiff = 0;
+ }
+@@ -5150,6 +5156,7 @@ init_buffer_once (void)
+   XSETFASTINT (BVAR (&buffer_local_flags, header_line_format), idx); ++idx;
+   XSETFASTINT (BVAR (&buffer_local_flags, cursor_type), idx); ++idx;
+   XSETFASTINT (BVAR (&buffer_local_flags, extra_line_spacing), idx); ++idx;
++  XSETFASTINT (BVAR (&buffer_local_flags, line_spacing_vertical_center), idx); ++idx;
+   XSETFASTINT (BVAR (&buffer_local_flags, cursor_in_non_selected_windows), idx); ++idx;
+ 
+   /* Need more room? */
+@@ -5214,6 +5221,7 @@ init_buffer_once (void)
+   bset_bidi_paragraph_separate_re (&buffer_defaults, Qnil);
+   bset_cursor_type (&buffer_defaults, Qt);
+   bset_extra_line_spacing (&buffer_defaults, Qnil);
++  bset_line_spacing_vertical_center (&buffer_defaults, Qnil);
+   bset_cursor_in_non_selected_windows (&buffer_defaults, Qt);
+ 
+   bset_enable_multibyte_characters (&buffer_defaults, Qt);
+@@ -6215,6 +6223,11 @@ see `display-graphic-p'.
+ If value is a floating point number, it specifies the spacing relative
+ to the default frame line height.  A value of nil means add no extra space.  */);
+ 
++  DEFVAR_PER_BUFFER ("line-spacing-vertical-center",
++		     &BVAR (current_buffer, line_spacing_vertical_center), Qnil,
++                     doc: /* Non-nil means center the line content vertically
++when using `line-spacing' variable.  */);
++
+   DEFVAR_PER_BUFFER ("cursor-in-non-selected-windows",
+ 		     &BVAR (current_buffer, cursor_in_non_selected_windows), Qnil,
+ 		     doc: /* Non-nil means show a cursor in non-selected windows.
+diff --git a/src/buffer.h b/src/buffer.h
+index b832229403..242fc13766 100644
+--- a/src/buffer.h
++++ b/src/buffer.h
+@@ -758,6 +758,10 @@ struct buffer
+      in the display of this buffer.  */
+   Lisp_Object extra_line_spacing_;
+ 
++  /* Non-nil means center the line content vertically. To be used
++     along with `line-spacing'.  */
++  Lisp_Object line_spacing_vertical_center_;
++
+   /* Cursor type to display in non-selected windows.
+      t means to use hollow box cursor.
+      See `cursor-type' for other values.  */
+diff --git a/src/xdisp.c b/src/xdisp.c
+index 7eab65bd1f..5bdd1dfd15 100644
+--- a/src/xdisp.c
++++ b/src/xdisp.c
+@@ -28977,7 +28977,17 @@ x_produce_glyphs (struct it *it)
+ 
+   if (extra_line_spacing > 0)
+     {
+-      it->descent += extra_line_spacing;
++      if (NILP (BVAR (XBUFFER (it->w->contents),
++                      line_spacing_vertical_center)))
++        {
++          it->descent += extra_line_spacing;
++        }
++      else
++        {
++          int spacing = extra_line_spacing / 2;
++          it->ascent += spacing;
++          it->descent += spacing;
++        }
+       if (extra_line_spacing > it->max_extra_line_spacing)
+ 	it->max_extra_line_spacing = extra_line_spacing;
+     }
