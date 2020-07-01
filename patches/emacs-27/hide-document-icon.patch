@@ -1,0 +1,129 @@
+diff --git a/src/frame.c b/src/frame.c
+index 4dd8bb1804..59ef906985 100644
+--- a/src/frame.c
++++ b/src/frame.c
+@@ -906,6 +906,7 @@ make_frame (bool mini_p)
+ #ifdef NS_IMPL_COCOA
+   f->ns_appearance = ns_appearance_aqua;
+   f->ns_transparent_titlebar = false;
++  f->ns_hide_document_icon = false;
+ #endif
+ #endif
+   /* This one should never be zero.  */
+@@ -3775,6 +3776,7 @@ static const struct frame_parm_table frame_parms[] =
+ #ifdef NS_IMPL_COCOA
+   {"ns-appearance",		SYMBOL_INDEX (Qns_appearance)},
+   {"ns-transparent-titlebar",	SYMBOL_INDEX (Qns_transparent_titlebar)},
++  {"ns-hide-document-icon",	SYMBOL_INDEX (Qns_hide_document_icon)},
+ #endif
+ };
+ 
+@@ -5969,6 +5971,7 @@ syms_of_frame (void)
+ #ifdef NS_IMPL_COCOA
+   DEFSYM (Qns_appearance, "ns-appearance");
+   DEFSYM (Qns_transparent_titlebar, "ns-transparent-titlebar");
++  DEFSYM (Qns_hide_document_icon, "ns-hide-document-icon");
+ #endif
+ 
+   DEFSYM (Qalpha, "alpha");
+diff --git a/src/frame.h b/src/frame.h
+index a54b8623e5..8a1a41d140 100644
+--- a/src/frame.h
++++ b/src/frame.h
+@@ -639,6 +639,7 @@ struct frame
+   /* NSAppearance theme used on this frame.  */
+   enum ns_appearance_type ns_appearance;
+   bool_bf ns_transparent_titlebar;
++  bool_bf ns_hide_document_icon;
+ #endif
+ } GCALIGNED_STRUCT;
+ 
+@@ -1071,6 +1072,7 @@ default_pixels_per_inch_y (void)
+ #ifdef NS_IMPL_COCOA
+ #define FRAME_NS_APPEARANCE(f) ((f)->ns_appearance)
+ #define FRAME_NS_TRANSPARENT_TITLEBAR(f) ((f)->ns_transparent_titlebar)
++#define FRAME_NS_HIDE_DOCUMENT_ICON(f) ((f)->ns_hide_document_icon)
+ #endif
+ #else /* not HAVE_WINDOW_SYSTEM */
+ #define FRAME_UNDECORATED(f) ((void) (f), 0)
+diff --git a/src/nsfns.m b/src/nsfns.m
+index 0f879fe390..79b503fdb6 100644
+--- a/src/nsfns.m
++++ b/src/nsfns.m
+@@ -973,6 +973,7 @@ Turn the input menu (an NSMenu) into a lisp list for tracking on lisp side.
+ #ifdef NS_IMPL_COCOA
+   ns_set_appearance,
+   ns_set_transparent_titlebar,
++  ns_set_hide_document_icon,
+ #endif
+ };
+ 
+@@ -1279,6 +1280,11 @@ Turn the input menu (an NSMenu) into a lisp list for tracking on lisp side.
+                              NULL, NULL, RES_TYPE_BOOLEAN);
+   FRAME_NS_TRANSPARENT_TITLEBAR (f) = !NILP (tem) && !EQ (tem, Qunbound);
+   store_frame_param (f, Qns_transparent_titlebar, tem);
++
++  tem = gui_display_get_arg (dpyinfo, parms, Qns_hide_document_icon,
++                             NULL, NULL, RES_TYPE_BOOLEAN);
++  FRAME_NS_HIDE_DOCUMENT_ICON (f) = !NILP (tem) && !EQ (tem, Qunbound);
++  store_frame_param (f, Qns_hide_document_icon, tem);
+ #endif
+ 
+   parent_frame = gui_display_get_arg (dpyinfo, parms, Qparent_frame, NULL, NULL,
+diff --git a/src/nsterm.h b/src/nsterm.h
+index f68c3246a7..a06bbb0012 100644
+--- a/src/nsterm.h
++++ b/src/nsterm.h
+@@ -1217,6 +1217,9 @@ extern void ns_set_appearance (struct frame *f, Lisp_Object new_value,
+ extern void ns_set_transparent_titlebar (struct frame *f,
+                                          Lisp_Object new_value,
+                                          Lisp_Object old_value);
++extern void ns_set_hide_document_icon (struct frame *f,
++                                       Lisp_Object new_value,
++                                       Lisp_Object old_value);
+ #endif
+ extern int ns_select (int nfds, fd_set *readfds, fd_set *writefds,
+ 		      fd_set *exceptfds, struct timespec *timeout,
+diff --git a/src/nsterm.m b/src/nsterm.m
+index e92e3d5a6f..f93174d272 100644
+--- a/src/nsterm.m
++++ b/src/nsterm.m
+@@ -2058,6 +2058,25 @@ so some key presses (TAB) are swallowed by the system.  */
+     }
+ #endif /* MAC_OS_X_VERSION_MAX_ALLOWED >= 101000 */
+ }
++
++void
++ns_set_hide_document_icon (struct frame *f, Lisp_Object new_value,
++                       Lisp_Object old_value)
++{
++#if MAC_OS_X_VERSION_MAX_ALLOWED >= 101000
++  EmacsView *view = (EmacsView *)FRAME_NS_VIEW (f);
++  NSWindow *window = [view window];
++
++  NSTRACE ("ns_hide_document_icon");
++
++  if ([window respondsToSelector: @selector(titleVisibility)]
++      && !EQ (new_value, old_value))
++    {
++      window.titleVisibility = !NILP (new_value);
++      FRAME_NS_HIDE_DOCUMENT_ICON (f) = !NILP (new_value);
++    }
++#endif /* MAC_OS_X_VERSION_MAX_ALLOWED >= 101000 */
++}
+ #endif /* NS_IMPL_COCOA */
+ 
+ static void
+@@ -7488,6 +7507,12 @@ - (instancetype) initFrameFromEmacs: (struct frame *)f
+ #if defined (NS_IMPL_COCOA) && MAC_OS_X_VERSION_MAX_ALLOWED >= 101000
+   if ([win respondsToSelector: @selector(titlebarAppearsTransparent)])
+     win.titlebarAppearsTransparent = FRAME_NS_TRANSPARENT_TITLEBAR (f);
++
++  if ([win respondsToSelector: @selector(titleVisibility)])
++  {
++    win.titleVisibility = FRAME_NS_HIDE_DOCUMENT_ICON (f);
++  }
++
+ #endif
+ 
+   tem = f->icon_name;
