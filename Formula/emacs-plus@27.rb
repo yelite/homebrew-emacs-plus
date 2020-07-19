@@ -99,12 +99,12 @@ class EmacsPlusAT27 < EmacsBase
   end
 
   patch do
-    url (PatchUrlResolver.url "emacs-27/center-line-spacing")
+    url (UrlResolver.url "emacs-27/center-line-spacing")
     sha256 "0de197a66ef6c81bbf106dd2813a051e9a8f273ab8d7f371c4f8162714804d36"
   end
 
   patch do
-    url (PatchUrlResolver.url "emacs-27/hide-document-icon")
+    url (UrlResolver.url "emacs-27/hide-document-icon")
     sha256 "390419a774b7d862b0d227d062efda310ec27b9dc543af2d6adbdfe9413a95ef"
   end
 
